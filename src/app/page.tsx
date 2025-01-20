@@ -1,53 +1,159 @@
-import Image from "next/image";
+'use client'
+
+import Image from 'next/image'
+import Link from 'next/link'
+import { useState, useEffect } from 'react'
+import { useDebounce } from 'use-debounce'
+import { supabase } from '@/lib/supabase'
+
+interface Location {
+  id: string
+  name: string
+  description: string
+  photos: string[]
+  tags: string[]
+  metadata: Record<string, any>
+}
 
 export default function Home() {
+  const [searchQuery, setSearchQuery] = useState('')
+  const [locations, setLocations] = useState<Location[]>([])
+  const [loading, setLoading] = useState(true)
+  const [debouncedQuery] = useDebounce(searchQuery, 300)
+
+  useEffect(() => {
+    async function fetchLocations() {
+      try {
+        setLoading(true)
+        const response = await fetch(`/api/search?q=${encodeURIComponent(debouncedQuery)}`)
+        const data = await response.json()
+        setLocations(data)
+      } catch (error) {
+        console.error('Error fetching locations:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchLocations()
+  }, [debouncedQuery])
+
   return (
     <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
       <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+        <main className="flex min-h-screen flex-col items-center p-8">
+          <div className="z-10 max-w-7xl w-full">
+            {/* Hero Section */}
+            <div className="text-center mb-16">
+              <h1 className="text-4xl font-bold tracking-tight sm:text-6xl mb-4">
+                Discover Cultural Treasures
+              </h1>
+              <p className="text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
+                Explore authentic local experiences and world-renowned artworks, curated by AI and human expertise.
+              </p>
+            </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
+            {/* Search and Filters */}
+            <div className="mb-12">
+              <div className="flex gap-4 max-w-2xl mx-auto">
+                <input
+                  type="text"
+                  placeholder="Search artworks, exhibitions, or cultural sites..."
+                  className="flex-1 rounded-lg border border-gray-300 px-4 py-2"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Featured Sections */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+              {loading ? (
+                // Loading skeletons
+                Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="rounded-lg border bg-white p-6 shadow-sm animate-pulse">
+                    <div className="aspect-[16/9] relative mb-4 bg-gray-200 rounded-md" />
+                    <div className="h-6 bg-gray-200 rounded mb-2" />
+                    <div className="h-4 bg-gray-200 rounded mb-2" />
+                    <div className="h-4 bg-gray-200 rounded w-2/3" />
+                  </div>
+                ))
+              ) : locations.length > 0 ? (
+                locations.map((location) => (
+                  <Link
+                    key={location.id}
+                    href={`/artwork/${location.id}`}
+                    className="rounded-lg border bg-white p-6 shadow-sm hover:shadow-md transition-shadow"
+                  >
+                    {location.photos && location.photos[0] && (
+                      <div className="aspect-[16/9] relative mb-4">
+                        <Image
+                          src={location.photos[0]}
+                          alt={location.name}
+                          fill
+                          className="object-cover rounded-md"
+                        />
+                      </div>
+                    )}
+                    <h3 className="text-xl font-semibold mb-2">{location.name}</h3>
+                    <p className="text-gray-600 line-clamp-3">{location.description}</p>
+                    {location.tags && location.tags.length > 0 && (
+                      <div className="flex gap-2 mt-4 flex-wrap">
+                        {location.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="px-2 py-1 bg-gray-100 rounded-full text-sm text-gray-600"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </Link>
+                ))
+              ) : (
+                <div className="col-span-full text-center py-12">
+                  <p className="text-gray-500">No artworks found. Try a different search term.</p>
+                </div>
+              )}
+            </div>
+
+            {/* Categories Section */}
+            <div className="mb-16">
+              <h2 className="text-2xl font-bold mb-6">Browse by Category</h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {['Paintings', 'Sculptures', 'Photography', 'Decorative Arts'].map((category) => (
+                  <button
+                    key={category}
+                    className="p-4 text-center rounded-lg border hover:bg-gray-50"
+                    onClick={() => setSearchQuery(category)}
+                  >
+                    {category}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Museums Section */}
+            <div>
+              <h2 className="text-2xl font-bold mb-6">Featured Museums</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="rounded-lg border bg-white p-6 shadow-sm">
+                  <h3 className="text-lg font-semibold mb-2">The Metropolitan Museum of Art</h3>
+                  <p className="text-gray-600">
+                    Explore over 470,000 artworks from one of the world's largest and most comprehensive art museums.
+                  </p>
+                </div>
+                <div className="rounded-lg border bg-white p-6 shadow-sm">
+                  <h3 className="text-lg font-semibold mb-2">Art Institute of Chicago</h3>
+                  <p className="text-gray-600">
+                    Discover a vast collection of impressionist art and American paintings in this renowned institution.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
       </main>
       <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
         <a
@@ -97,5 +203,5 @@ export default function Home() {
         </a>
       </footer>
     </div>
-  );
+  )
 }

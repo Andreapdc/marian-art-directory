@@ -1,36 +1,116 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Cultural Directory Website
 
-## Getting Started
+A modern directory website that integrates AI for content curation, semantic structuring, and social media integration. The platform showcases authentic local exploration data, harmonizing human research with AI automation.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Real-time art data from multiple prestigious museums
+- AI-powered content curation and recommendations
+- Dynamic search functionality
+- Detailed artwork pages
+- Automatic data synchronization
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Tech Stack
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Frontend**: Next.js, TailwindCSS
+- **Backend**: Supabase
+- **APIs**: 
+  - Metropolitan Museum of Art
+  - Art Institute of Chicago
+  - Harvard Art Museums
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Setup Instructions
 
-## Learn More
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd marian-art-directory
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+3. **Set up environment variables**
+   Create a `.env.local` file with:
+   ```
+   HARVARD_API_KEY=b48aab2f-36c4-461e-beec-847e4e5b623f
+   CRON_SECRET=your-secret-key-here
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+4. **Set up Supabase**
+   - Create a new project at [Supabase](https://supabase.com)
+   - Add the following environment variables to `.env.local`:
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=your-project-url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+   ```
 
-## Deploy on Vercel
+5. **Run database migrations**
+   - Copy the SQL from `supabase/init.sql`
+   - Run it in your Supabase SQL editor
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+6. **Run the development server**
+   ```bash
+   npm run dev
+   ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Deployment
+
+1. **Deploy to Vercel**
+   ```bash
+   vercel
+   ```
+
+2. **Set up environment variables in Vercel**
+   Add the following environment variables in your Vercel project settings:
+   - `HARVARD_API_KEY`
+   - `CRON_SECRET`
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+3. **Set up GitHub Actions**
+   - Go to your GitHub repository settings
+   - Add the following secrets:
+     - `CRON_SECRET`: Same value as in your environment variables
+     - `VERCEL_URL`: Your deployed Vercel URL
+
+The GitHub Action will automatically sync art data every 6 hours.
+
+## API Documentation
+
+### Endpoints
+
+- `GET /api/search?q=query`: Search for artworks
+- `POST /api/sync`: Manually trigger data sync
+- `POST /api/cron/sync`: Endpoint for automated sync (requires authentication)
+
+### Data Sources
+
+1. **Metropolitan Museum of Art**
+   - Over 470,000 artworks
+   - High-resolution images
+   - Detailed metadata
+
+2. **Art Institute of Chicago**
+   - Comprehensive artwork collection
+   - Exhibition information
+   - Educational resources
+
+3. **Harvard Art Museums**
+   - Extensive collection data
+   - Research materials
+   - Curatorial insights
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

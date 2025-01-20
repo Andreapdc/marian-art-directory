@@ -1,0 +1,11 @@
+{
+  "buildCommand": "next build",
+  "devCommand": "next dev",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "outputDirectory": ".next",
+  "env": {
+    "HARVARD_API_KEY": "b48aab2f-36c4-461e-beec-847e4e5b623f",
+    "CRON_SECRET": "your-secret-key-here"
+  }
+}
