@@ -1,27 +1,11 @@
 import { supabase } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
+import { Location } from '@/types'
 
 interface ArtworkPageProps {
   params: {
     id: string
-  }
-}
-
-interface Artwork {
-  id: string
-  name: string
-  description: string
-  photos: string[]
-  tags: string[]
-  metadata: {
-    source: string
-    department: string
-    date: string
-    culture: string
-    medium: string
-    type: string
-    url: string
   }
 }
 
