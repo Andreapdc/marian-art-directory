@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import { Location } from '@/types'
+import { PostgrestSingleResponse } from '@supabase/supabase-js'
 
 interface ArtworkPageProps {
   params: {
@@ -14,7 +15,7 @@ export default async function ArtworkPage({ params }: ArtworkPageProps) {
     .from('locations')
     .select('*')
     .eq('id', params.id)
-    .single() as { data: Location | null; error: any }
+    .single() as PostgrestSingleResponse<Location>
 
   if (error || !artwork) {
     notFound()
