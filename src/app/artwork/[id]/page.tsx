@@ -14,35 +14,37 @@ export default async function ArtworkPage({ params }: ArtworkPageProps) {
     .from('locations')
     .select('*')
     .eq('id', params.id)
-    .single()
+    .single() as { data: Location | null; error: any }
 
   if (error || !artwork) {
     notFound()
   }
 
+  const typedArtwork: Location = artwork
+
   return (
     <main className="min-h-screen p-8 bg-gray-100">
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          {artwork.photos?.[0] && (
+          {typedArtwork.photos?.[0] && (
             <div className="relative w-full h-96">
               <Image
-                src={artwork.photos[0]}
-                alt={artwork.name}
+                src={typedArtwork.photos[0]}
+                alt={typedArtwork.name}
                 fill
                 className="object-cover"
               />
             </div>
           )}
           <div className="p-6">
-            <h1 className="text-3xl font-bold mb-4">{artwork.name}</h1>
-            <p className="text-gray-600 mb-6">{artwork.description}</p>
+            <h1 className="text-3xl font-bold mb-4">{typedArtwork.name}</h1>
+            <p className="text-gray-600 mb-6">{typedArtwork.description}</p>
             
-            {artwork.tags && artwork.tags.length > 0 && (
+            {typedArtwork.tags && typedArtwork.tags.length > 0 && (
               <div className="mb-6">
                 <h2 className="text-xl font-semibold mb-3">Tags</h2>
                 <div className="flex flex-wrap gap-2">
-                  {artwork.tags.map((tag, index) => (
+                  {typedArtwork.tags.map((tag, index) => (
                     <span
                       key={index}
                       className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
@@ -54,54 +56,54 @@ export default async function ArtworkPage({ params }: ArtworkPageProps) {
               </div>
             )}
 
-            {artwork.metadata && (
+            {typedArtwork.metadata && (
               <div>
                 <h2 className="text-xl font-semibold mb-3">Additional Information</h2>
                 <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {artwork.metadata.source && (
+                  {typedArtwork.metadata.source && (
                     <div>
                       <dt className="text-gray-600">Source</dt>
-                      <dd className="font-medium">{artwork.metadata.source}</dd>
+                      <dd className="font-medium">{typedArtwork.metadata.source}</dd>
                     </div>
                   )}
-                  {artwork.metadata.department && (
+                  {typedArtwork.metadata.department && (
                     <div>
                       <dt className="text-gray-600">Department</dt>
-                      <dd className="font-medium">{artwork.metadata.department}</dd>
+                      <dd className="font-medium">{typedArtwork.metadata.department}</dd>
                     </div>
                   )}
-                  {artwork.metadata.date && (
+                  {typedArtwork.metadata.date && (
                     <div>
                       <dt className="text-gray-600">Date</dt>
-                      <dd className="font-medium">{artwork.metadata.date}</dd>
+                      <dd className="font-medium">{typedArtwork.metadata.date}</dd>
                     </div>
                   )}
-                  {artwork.metadata.culture && (
+                  {typedArtwork.metadata.culture && (
                     <div>
                       <dt className="text-gray-600">Culture</dt>
-                      <dd className="font-medium">{artwork.metadata.culture}</dd>
+                      <dd className="font-medium">{typedArtwork.metadata.culture}</dd>
                     </div>
                   )}
-                  {artwork.metadata.medium && (
+                  {typedArtwork.metadata.medium && (
                     <div>
                       <dt className="text-gray-600">Medium</dt>
-                      <dd className="font-medium">{artwork.metadata.medium}</dd>
+                      <dd className="font-medium">{typedArtwork.metadata.medium}</dd>
                     </div>
                   )}
-                  {artwork.metadata.type && (
+                  {typedArtwork.metadata.type && (
                     <div>
                       <dt className="text-gray-600">Type</dt>
-                      <dd className="font-medium">{artwork.metadata.type}</dd>
+                      <dd className="font-medium">{typedArtwork.metadata.type}</dd>
                     </div>
                   )}
                 </dl>
               </div>
             )}
 
-            {artwork.metadata?.url && (
+            {typedArtwork.metadata?.url && (
               <div className="mt-8">
                 <a
-                  href={artwork.metadata.url}
+                  href={typedArtwork.metadata.url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
