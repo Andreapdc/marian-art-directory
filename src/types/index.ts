@@ -8,8 +8,18 @@ export interface Location {
     latitude: number;
     longitude: number;
   };
-  createdAt: Date;
-  updatedAt: Date;
+  metadata: {
+    source: string;
+    id: number | string;
+    url?: string;
+    department?: string;
+    date?: string;
+    culture?: string;
+    medium?: string;
+    type?: string;
+  };
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Event {
@@ -39,7 +49,9 @@ export interface AIContent {
   sourceType: 'location' | 'event' | 'user';
   sourceId: string;
   contentType: 'description' | 'summary' | 'recommendation';
-  metadata: Record<string, any>;
+  metadata: {
+    [key: string]: string | number | boolean | null;
+  };
   createdAt: Date;
   updatedAt: Date;
 }

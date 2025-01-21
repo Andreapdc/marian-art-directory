@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   try {
     const { data, error } = await supabase
@@ -8,14 +10,13 @@ export async function GET() {
       .select('*')
       .order('created_at', { ascending: false })
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
+    if (error) throw error
 
-    return NextResponse.json(data)
+    return NextResponse.json(data || [])
   } catch (error) {
+    console.error('Error fetching locations:', error)
     return NextResponse.json(
-      { error: 'Internal Server Error' },
+      { error: 'Failed to fetch locations' },
       { status: 500 }
     )
   }
@@ -24,29 +25,19 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { name, description, photos, tags, coordinates } = body
-
     const { data, error } = await supabase
       .from('locations')
-      .insert([
-        {
-          name,
-          description,
-          photos,
-          tags,
-          coordinates,
-        },
-      ])
+      .insert(body)
       .select()
+      .single()
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
+    if (error) throw error
 
-    return NextResponse.json(data[0], { status: 201 })
+    return NextResponse.json(data)
   } catch (error) {
+    console.error('Error creating location:', error)
     return NextResponse.json(
-      { error: 'Internal Server Error' },
+      { error: 'Failed to create location' },
       { status: 500 }
     )
   }

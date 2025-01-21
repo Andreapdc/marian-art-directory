@@ -5,7 +5,7 @@ import { syncArtData } from '@/lib/api/art-services'
 // This secret should match the one you set in your cron job service
 const CRON_SECRET = process.env.CRON_SECRET || 'your-secret-key'
 
-export async function POST(request: Request) {
+export async function POST() {
   try {
     const headersList = headers()
     const authHeader = headersList.get('authorization')
@@ -18,14 +18,10 @@ export async function POST(request: Request) {
       )
     }
 
-    await syncArtData()
-    
-    return NextResponse.json({
-      message: 'Art data synchronized successfully',
-      timestamp: new Date().toISOString()
-    })
+    const result = await syncArtData()
+    return NextResponse.json(result)
   } catch (error) {
-    console.error('Cron sync error:', error)
+    console.error('Error in cron sync:', error)
     return NextResponse.json(
       { error: 'Failed to sync art data' },
       { status: 500 }
@@ -33,5 +29,5 @@ export async function POST(request: Request) {
   }
 }
 
-// Prevent caching of this route
+// Prevent caching
 export const dynamic = 'force-dynamic'

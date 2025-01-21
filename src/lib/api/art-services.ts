@@ -18,6 +18,17 @@ interface WikimediaArtwork {
   }>
 }
 
+interface SearchResult {
+  pageid: number
+  title: string
+}
+
+interface WikimediaSearchResponse {
+  query: {
+    search: SearchResult[]
+  }
+}
+
 interface MetArtwork {
   objectID: number
   title: string
@@ -41,7 +52,24 @@ interface ChicagoArtwork {
   artwork_type_title: string
 }
 
-export async function fetchWikimediaArt(limit = 10) {
+interface Artwork {
+  name: string
+  description: string
+  photos: string[]
+  tags: string[]
+  metadata: {
+    source: string
+    id: number
+    url?: string
+    department?: string
+    date?: string
+    culture?: string
+    medium?: string
+    type?: string
+  }
+}
+
+export async function fetchWikimediaArt(limit = 10): Promise<Artwork[]> {
   console.log('Fetching Wikimedia art data...')
   try {
     // First search for art-related pages
@@ -53,8 +81,8 @@ export async function fetchWikimediaArt(limit = 10) {
       throw new Error(`Wikimedia search API responded with status: ${searchResponse.status}`)
     }
     
-    const searchData = await searchResponse.json()
-    const pageIds = searchData.query.search.map((result: any) => result.pageid).join('|')
+    const searchData = (await searchResponse.json()) as WikimediaSearchResponse
+    const pageIds = searchData.query.search.map(result => result.pageid).join('|')
 
     // Then get detailed information for each page
     const detailsResponse = await fetch(
@@ -88,7 +116,7 @@ export async function fetchWikimediaArt(limit = 10) {
   }
 }
 
-export async function fetchMetArt(limit = 10) {
+export async function fetchMetArt(limit = 10): Promise<Artwork[]> {
   console.log('Fetching Met Art data...')
   try {
     const searchResponse = await fetch(
@@ -116,8 +144,8 @@ export async function fetchMetArt(limit = 10) {
     )
     
     return artworks
-      .filter(Boolean)
-      .map((artwork: MetArtwork) => ({
+      .filter((artwork): artwork is MetArtwork => artwork !== null)
+      .map((artwork) => ({
         name: artwork.title,
         description: `${artwork.objectName} from ${artwork.department}`,
         photos: [
@@ -144,7 +172,7 @@ export async function fetchMetArt(limit = 10) {
   }
 }
 
-export async function fetchChicagoArt(limit = 10) {
+export async function fetchChicagoArt(limit = 10): Promise<Artwork[]> {
   console.log('Fetching Chicago Art data...')
   try {
     const response = await fetch(
@@ -182,7 +210,15 @@ export async function fetchChicagoArt(limit = 10) {
   }
 }
 
-export async function syncArtData() {
+export async function syncArtData(): Promise<{
+  total: number
+  new: number
+  sources: {
+    wikimedia: number
+    met: number
+    chicago: number
+  }
+}> {
   console.log('Starting art data sync...')
   try {
     const [wikiArt, metArt, chicagoArt] = await Promise.all([
@@ -246,7 +282,7 @@ export async function syncArtData() {
   }
 }
 
-export async function searchArtworks(query: string) {
+export async function searchArtworks(query: string): Promise<Artwork[]> {
   console.log('Searching artworks:', query)
   try {
     const { data: locations, error } = await supabase
