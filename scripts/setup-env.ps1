@@ -1,0 +1,8 @@
+$envContent = @"
+NEXT_PUBLIC_SUPABASE_URL=https://pmbkkslkkwhtsfukjqhx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBtYmtrc2xra3dodHNmdWtqcWh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzczNzczMjIsImV4cCI6MjA1Mjk1MzMyMn0.fdBL1ZOyrlllYz26qO21RoilqTy3QGoSw7-AQPomIVU
+SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBtYmtrc2xra3dodHNmdWtqcWh4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNzM3NzMyMiwiZXhwIjoyMDUyOTUzMzIyfQ.DaTBv8iP7ri6Yt1aHk3GughlxxsuxH8yQUi_uYqks0o
+"@
+
+Set-Content -Path "../.env.local" -Value $envContent
+Write-Host "Environment variables have been set up successfully!"

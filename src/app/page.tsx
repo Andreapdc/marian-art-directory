@@ -12,7 +12,11 @@ interface Location {
   description: string
   photos: string[]
   tags: string[]
-  metadata: Record<string, any>
+  metadata: {
+    source: string
+    id: number | string
+    url?: string
+  }
 }
 
 export default function Home() {
@@ -39,169 +43,147 @@ export default function Home() {
   }, [debouncedQuery])
 
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <main className="flex min-h-screen flex-col items-center p-8">
-          <div className="z-10 max-w-7xl w-full">
-            {/* Hero Section */}
-            <div className="text-center mb-16">
-              <h1 className="text-4xl font-bold tracking-tight sm:text-6xl mb-4">
-                Discover Cultural Treasures
-              </h1>
-              <p className="text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
-                Explore authentic local experiences and world-renowned artworks, curated by AI and human expertise.
-              </p>
-            </div>
+    <main className="min-h-screen p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Hero Section */}
+        <div className="text-center mb-16">
+          <h1 className="text-4xl font-bold tracking-tight sm:text-6xl mb-4">
+            Cultural Directory
+          </h1>
+          <p className="text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
+            Explore art and culture from Wikipedia, the Metropolitan Museum of Art, and the Art Institute of Chicago.
+          </p>
+        </div>
 
-            {/* Search and Filters */}
-            <div className="mb-12">
-              <div className="flex gap-4 max-w-2xl mx-auto">
-                <input
-                  type="text"
-                  placeholder="Search artworks, exhibitions, or cultural sites..."
-                  className="flex-1 rounded-lg border border-gray-300 px-4 py-2"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-            </div>
-
-            {/* Featured Sections */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-              {loading ? (
-                // Loading skeletons
-                Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="rounded-lg border bg-white p-6 shadow-sm animate-pulse">
-                    <div className="aspect-[16/9] relative mb-4 bg-gray-200 rounded-md" />
-                    <div className="h-6 bg-gray-200 rounded mb-2" />
-                    <div className="h-4 bg-gray-200 rounded mb-2" />
-                    <div className="h-4 bg-gray-200 rounded w-2/3" />
-                  </div>
-                ))
-              ) : locations.length > 0 ? (
-                locations.map((location) => (
-                  <Link
-                    key={location.id}
-                    href={`/artwork/${location.id}`}
-                    className="rounded-lg border bg-white p-6 shadow-sm hover:shadow-md transition-shadow"
-                  >
-                    {location.photos && location.photos[0] && (
-                      <div className="aspect-[16/9] relative mb-4">
-                        <Image
-                          src={location.photos[0]}
-                          alt={location.name}
-                          fill
-                          className="object-cover rounded-md"
-                        />
-                      </div>
-                    )}
-                    <h3 className="text-xl font-semibold mb-2">{location.name}</h3>
-                    <p className="text-gray-600 line-clamp-3">{location.description}</p>
-                    {location.tags && location.tags.length > 0 && (
-                      <div className="flex gap-2 mt-4 flex-wrap">
-                        {location.tags.map((tag) => (
-                          <span
-                            key={tag}
-                            className="px-2 py-1 bg-gray-100 rounded-full text-sm text-gray-600"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </Link>
-                ))
-              ) : (
-                <div className="col-span-full text-center py-12">
-                  <p className="text-gray-500">No artworks found. Try a different search term.</p>
-                </div>
-              )}
-            </div>
-
-            {/* Categories Section */}
-            <div className="mb-16">
-              <h2 className="text-2xl font-bold mb-6">Browse by Category</h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {['Paintings', 'Sculptures', 'Photography', 'Decorative Arts'].map((category) => (
-                  <button
-                    key={category}
-                    className="p-4 text-center rounded-lg border hover:bg-gray-50"
-                    onClick={() => setSearchQuery(category)}
-                  >
-                    {category}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Museums Section */}
-            <div>
-              <h2 className="text-2xl font-bold mb-6">Featured Museums</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="rounded-lg border bg-white p-6 shadow-sm">
-                  <h3 className="text-lg font-semibold mb-2">The Metropolitan Museum of Art</h3>
-                  <p className="text-gray-600">
-                    Explore over 470,000 artworks from one of the world's largest and most comprehensive art museums.
-                  </p>
-                </div>
-                <div className="rounded-lg border bg-white p-6 shadow-sm">
-                  <h3 className="text-lg font-semibold mb-2">Art Institute of Chicago</h3>
-                  <p className="text-gray-600">
-                    Discover a vast collection of impressionist art and American paintings in this renowned institution.
-                  </p>
-                </div>
+        {/* Search Section */}
+        <div className="mb-12">
+          <div className="max-w-2xl mx-auto">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search artworks, exhibitions, or cultural sites..."
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <div className="absolute right-3 top-3">
+                <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
               </div>
             </div>
           </div>
-        </main>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+        </div>
+
+        {/* Artwork Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+          {loading ? (
+            // Loading skeletons
+            Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="rounded-lg border bg-white p-6 shadow-sm animate-pulse">
+                <div className="aspect-[16/9] relative mb-4 bg-gray-200 rounded-md" />
+                <div className="h-6 bg-gray-200 rounded mb-2" />
+                <div className="h-4 bg-gray-200 rounded mb-2" />
+                <div className="h-4 bg-gray-200 rounded w-2/3" />
+              </div>
+            ))
+          ) : locations.length > 0 ? (
+            locations.map((location) => (
+              <Link
+                key={location.id}
+                href={location.metadata?.url || `/artwork/${location.id}`}
+                target={location.metadata?.url ? "_blank" : "_self"}
+                className="group rounded-lg border bg-white p-6 shadow-sm hover:shadow-md transition-all duration-200"
+              >
+                {location.photos && location.photos[0] && (
+                  <div className="aspect-[16/9] relative mb-4 overflow-hidden rounded-md">
+                    <Image
+                      src={location.photos[0]}
+                      alt={location.name}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-200"
+                    />
+                  </div>
+                )}
+                <h3 className="text-xl font-semibold mb-2 group-hover:text-blue-600 transition-colors">
+                  {location.name}
+                </h3>
+                <p className="text-gray-600 line-clamp-3 mb-4">
+                  {location.description}
+                </p>
+                {location.tags && location.tags.length > 0 && (
+                  <div className="flex gap-2 flex-wrap">
+                    {location.tags.slice(0, 3).map((tag) => (
+                      <span
+                        key={tag}
+                        className="px-2 py-1 bg-gray-100 rounded-full text-sm text-gray-600"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                    {location.tags.length > 3 && (
+                      <span className="px-2 py-1 bg-gray-100 rounded-full text-sm text-gray-600">
+                        +{location.tags.length - 3} more
+                      </span>
+                    )}
+                  </div>
+                )}
+                <div className="mt-4 pt-4 border-t text-sm text-gray-500">
+                  Source: {location.metadata?.source === 'wikimedia' ? 'Wikipedia' : 
+                          location.metadata?.source === 'met' ? 'Metropolitan Museum of Art' :
+                          location.metadata?.source === 'chicago' ? 'Art Institute of Chicago' : 
+                          'Local Database'}
+                </div>
+              </Link>
+            ))
+          ) : (
+            <div className="col-span-full text-center py-12">
+              <p className="text-gray-500">No artworks found. Try a different search term.</p>
+            </div>
+          )}
+        </div>
+
+        {/* Categories Section */}
+        <div className="mb-16">
+          <h2 className="text-2xl font-bold mb-6">Browse by Category</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {['Paintings', 'Sculptures', 'Architecture', 'Photography', 'Museums', 'Exhibitions', 'Artists', 'History'].map((category) => (
+              <button
+                key={category}
+                className="p-4 text-center rounded-lg border hover:bg-gray-50 transition-colors"
+                onClick={() => setSearchQuery(category)}
+              >
+                {category}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Sources Section */}
+        <div>
+          <h2 className="text-2xl font-bold mb-6">Data Sources</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="rounded-lg border bg-white p-6 shadow-sm">
+              <h3 className="text-lg font-semibold mb-2">Wikipedia</h3>
+              <p className="text-gray-600">
+                Access to millions of articles about art, culture, and history from the world's largest encyclopedia.
+              </p>
+            </div>
+            <div className="rounded-lg border bg-white p-6 shadow-sm">
+              <h3 className="text-lg font-semibold mb-2">Metropolitan Museum of Art</h3>
+              <p className="text-gray-600">
+                Over 470,000 artworks from one of the world's largest and most comprehensive art museums.
+              </p>
+            </div>
+            <div className="rounded-lg border bg-white p-6 shadow-sm">
+              <h3 className="text-lg font-semibold mb-2">Art Institute of Chicago</h3>
+              <p className="text-gray-600">
+                Discover a vast collection of impressionist art and American paintings in this renowned institution.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
   )
 }

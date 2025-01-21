@@ -1,160 +1,267 @@
-import { supabase } from '../supabase'
+import { supabase, supabaseAdmin } from '@/lib/supabase'
 
-const MET_API_BASE_URL = 'https://collectionapi.metmuseum.org/public/collection/v1'
-const CHICAGO_API_BASE_URL = 'https://api.artic.edu/api/v1'
-const HARVARD_API_BASE_URL = 'https://api.harvardartmuseums.org'
-const HARVARD_API_KEY = process.env.HARVARD_API_KEY || 'YOUR_API_KEY' // You'll need to get this from Harvard
+interface WikimediaArtwork {
+  title: string
+  pageid: number
+  extract: string
+  thumbnail?: {
+    source: string
+    width: number
+    height: number
+  }
+  terms?: {
+    description?: string[]
+    label?: string[]
+  }
+  categories?: Array<{
+    title: string
+  }>
+}
 
-export interface MetArtwork {
+interface MetArtwork {
   objectID: number
   title: string
-  artistDisplayName: string
+  objectName: string
   primaryImage: string
+  additionalImages: string[]
   department: string
-  objectDate: string
+  culture: string
   period: string
-  medium: string
-  dimensions: string
+  objectDate: string
 }
 
-export interface ChicagoArtwork {
+interface ChicagoArtwork {
   id: number
   title: string
-  artist_display: string
+  description: string | null
   image_id: string
   date_display: string
+  place_of_origin: string
   medium_display: string
-  dimensions: string
+  artwork_type_title: string
 }
 
-export interface HarvardArtwork {
-  id: number
-  title: string
-  primaryimageurl: string
-  people: Array<{ name: string; role: string }>
-  dated: string
-  medium: string
-  technique: string
-  division: string
-}
-
-export async function fetchMetArtworks(searchTerm?: string) {
+export async function fetchWikimediaArt(limit = 10) {
+  console.log('Fetching Wikimedia art data...')
   try {
-    // First get object IDs
-    const searchUrl = searchTerm
-      ? `${MET_API_BASE_URL}/search?q=${encodeURIComponent(searchTerm)}&hasImages=true`
-      : `${MET_API_BASE_URL}/objects?hasImages=true`
+    // First search for art-related pages
+    const searchResponse = await fetch(
+      `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=art%20museum%20painting%20sculpture&format=json&origin=*&srlimit=${limit}`
+    )
     
-    const response = await fetch(searchUrl)
-    const data = await response.json()
-    const objectIDs = data.objectIDs?.slice(0, 20) || []
+    if (!searchResponse.ok) {
+      throw new Error(`Wikimedia search API responded with status: ${searchResponse.status}`)
+    }
+    
+    const searchData = await searchResponse.json()
+    const pageIds = searchData.query.search.map((result: any) => result.pageid).join('|')
 
-    // Then fetch details for each object
+    // Then get detailed information for each page
+    const detailsResponse = await fetch(
+      `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=extracts|pageimages|pageterms|categories&exintro=1&pithumbsize=1000&pilimit=${limit}&pageids=${pageIds}`
+    )
+
+    if (!detailsResponse.ok) {
+      throw new Error(`Wikimedia details API responded with status: ${detailsResponse.status}`)
+    }
+
+    const detailsData = await detailsResponse.json()
+    const pages = Object.values(detailsData.query.pages) as WikimediaArtwork[]
+
+    return pages.map(page => ({
+      name: page.title.replace(/_/g, ' '),
+      description: page.extract || page.terms?.description?.[0] || 'No description available',
+      photos: page.thumbnail ? [page.thumbnail.source] : [],
+      tags: page.categories
+        ?.map(cat => cat.title.replace('Category:', '').replace(/_/g, ' '))
+        .filter(cat => !cat.includes('Articles') && !cat.includes('Pages'))
+        || [],
+      metadata: {
+        source: 'wikimedia',
+        id: page.pageid,
+        url: `https://en.wikipedia.org/wiki/${encodeURIComponent(page.title)}`
+      }
+    }))
+  } catch (error) {
+    console.error('Error fetching Wikimedia art data:', error)
+    throw new Error(`Wikimedia API error: ${error instanceof Error ? error.message : 'Unknown error'}`)
+  }
+}
+
+export async function fetchMetArt(limit = 10) {
+  console.log('Fetching Met Art data...')
+  try {
+    const searchResponse = await fetch(
+      `https://collectionapi.metmuseum.org/public/collection/v1/search?hasImages=true&q=art`
+    )
+    
+    if (!searchResponse.ok) {
+      throw new Error(`Met API search responded with status: ${searchResponse.status}`)
+    }
+    
+    const { objectIDs } = await searchResponse.json()
+    const selectedIds = objectIDs.slice(0, limit)
+    
     const artworks = await Promise.all(
-      objectIDs.map(async (id: number) => {
-        const detailResponse = await fetch(`${MET_API_BASE_URL}/objects/${id}`)
-        return detailResponse.json()
+      selectedIds.map(async (id: number) => {
+        const response = await fetch(
+          `https://collectionapi.metmuseum.org/public/collection/v1/objects/${id}`
+        )
+        if (!response.ok) {
+          console.warn(`Failed to fetch Met artwork ${id}`)
+          return null
+        }
+        return response.json()
       })
     )
-
-    // Store in Supabase
-    const { error } = await supabase.from('locations').upsert(
-      artworks.map(artwork => ({
+    
+    return artworks
+      .filter(Boolean)
+      .map((artwork: MetArtwork) => ({
         name: artwork.title,
-        description: `${artwork.artistDisplayName ? `By ${artwork.artistDisplayName}. ` : ''}${artwork.medium || ''} (${artwork.objectDate || 'Date unknown'})`,
-        photos: artwork.primaryImage ? [artwork.primaryImage] : [],
-        tags: [artwork.department, artwork.period].filter(Boolean),
+        description: `${artwork.objectName} from ${artwork.department}`,
+        photos: [
+          artwork.primaryImage,
+          ...artwork.additionalImages
+        ].filter(Boolean),
+        tags: [
+          artwork.department,
+          artwork.culture,
+          artwork.period,
+          artwork.objectDate
+        ].filter(Boolean),
         metadata: {
           source: 'met',
-          objectID: artwork.objectID,
-          dimensions: artwork.dimensions
+          id: artwork.objectID,
+          department: artwork.department,
+          date: artwork.objectDate,
+          culture: artwork.culture
         }
-      })),
-      { onConflict: 'name' }
-    )
-
-    if (error) throw error
-    return artworks
+      }))
   } catch (error) {
-    console.error('Error fetching Met artworks:', error)
-    throw error
+    console.error('Error fetching Met Art data:', error)
+    throw new Error(`Met Art API error: ${error instanceof Error ? error.message : 'Unknown error'}`)
   }
 }
 
-export async function fetchChicagoArtworks(searchTerm?: string) {
+export async function fetchChicagoArt(limit = 10) {
+  console.log('Fetching Chicago Art data...')
   try {
-    const searchUrl = `${CHICAGO_API_BASE_URL}/artworks/search${
-      searchTerm ? `?q=${encodeURIComponent(searchTerm)}` : ''
-    }`
-    
-    const response = await fetch(searchUrl)
-    const data = await response.json()
-    
-    const artworks = data.data || []
-
-    // Store in Supabase
-    const { error } = await supabase.from('locations').upsert(
-      artworks.map((artwork: ChicagoArtwork) => ({
-        name: artwork.title,
-        description: `${artwork.artist_display}. ${artwork.medium_display || ''} (${artwork.date_display || 'Date unknown'})`,
-        photos: artwork.image_id ? [`https://www.artic.edu/iiif/2/${artwork.image_id}/full/843,/0/default.jpg`] : [],
-        tags: ['Art Institute of Chicago'],
-        metadata: {
-          source: 'chicago',
-          artworkId: artwork.id,
-          dimensions: artwork.dimensions
-        }
-      })),
-      { onConflict: 'name' }
+    const response = await fetch(
+      `https://api.artic.edu/api/v1/artworks?limit=${limit}&fields=id,title,description,image_id,date_display,place_of_origin,medium_display,artwork_type_title`
     )
-
-    if (error) throw error
-    return artworks
-  } catch (error) {
-    console.error('Error fetching Chicago artworks:', error)
-    throw error
-  }
-}
-
-export async function fetchHarvardArtworks(searchTerm?: string) {
-  try {
-    const searchUrl = `${HARVARD_API_BASE_URL}/object${
-      searchTerm ? `?q=${encodeURIComponent(searchTerm)}` : ''
-    }&apikey=${HARVARD_API_KEY}&hasimage=1&size=20`
     
-    const response = await fetch(searchUrl)
+    if (!response.ok) {
+      throw new Error(`Chicago API responded with status: ${response.status}`)
+    }
+    
     const data = await response.json()
-    
-    const artworks = data.records || []
-
-    // Store in Supabase
-    const { error } = await supabase.from('locations').upsert(
-      artworks.map((artwork: HarvardArtwork) => ({
-        name: artwork.title,
-        description: `${artwork.people?.map(p => `${p.role}: ${p.name}`).join(', ') || 'Unknown artist'}. ${artwork.medium || ''} (${artwork.dated || 'Date unknown'})`,
-        photos: artwork.primaryimageurl ? [artwork.primaryimageurl] : [],
-        tags: [artwork.division, artwork.technique].filter(Boolean),
-        metadata: {
-          source: 'harvard',
-          artworkId: artwork.id,
-          technique: artwork.technique
-        }
-      })),
-      { onConflict: 'name' }
-    )
-
-    if (error) throw error
-    return artworks
+    return data.data.map((artwork: ChicagoArtwork) => ({
+      name: artwork.title,
+      description: artwork.description || `${artwork.artwork_type_title} from ${artwork.place_of_origin}`,
+      photos: artwork.image_id ? [
+        `https://www.artic.edu/iiif/2/${artwork.image_id}/full/843,/0/default.jpg`
+      ] : [],
+      tags: [
+        artwork.artwork_type_title,
+        artwork.place_of_origin,
+        artwork.medium_display,
+        artwork.date_display
+      ].filter(Boolean),
+      metadata: {
+        source: 'chicago',
+        id: artwork.id,
+        date: artwork.date_display,
+        medium: artwork.medium_display,
+        type: artwork.artwork_type_title
+      }
+    }))
   } catch (error) {
-    console.error('Error fetching Harvard artworks:', error)
-    throw error
+    console.error('Error fetching Chicago Art data:', error)
+    throw new Error(`Chicago Art API error: ${error instanceof Error ? error.message : 'Unknown error'}`)
   }
 }
 
 export async function syncArtData() {
-  await Promise.all([
-    fetchMetArtworks(),
-    fetchChicagoArtworks(),
-    fetchHarvardArtworks()
-  ])
+  console.log('Starting art data sync...')
+  try {
+    const [wikiArt, metArt, chicagoArt] = await Promise.all([
+      fetchWikimediaArt(10).catch(error => {
+        console.error('Wikimedia Art fetch failed:', error)
+        return []
+      }),
+      fetchMetArt(10).catch(error => {
+        console.error('Met Art fetch failed:', error)
+        return []
+      }),
+      fetchChicagoArt(10).catch(error => {
+        console.error('Chicago Art fetch failed:', error)
+        return []
+      })
+    ])
+
+    const allArtworks = [...wikiArt, ...metArt, ...chicagoArt]
+    console.log(`Fetched ${allArtworks.length} total artworks`)
+
+    const { data: existingArtworks, error: fetchError } = await supabaseAdmin
+      .from('locations')
+      .select('metadata->source, metadata->id')
+
+    if (fetchError) {
+      throw new Error(`Failed to fetch existing artworks: ${fetchError.message}`)
+    }
+
+    const newArtworks = allArtworks.filter(artwork => {
+      return !existingArtworks?.some(
+        existing => 
+          existing.metadata?.source === artwork.metadata.source && 
+          existing.metadata?.id === artwork.metadata.id
+      )
+    })
+
+    console.log(`Found ${newArtworks.length} new artworks to insert`)
+
+    if (newArtworks.length > 0) {
+      const { error: insertError } = await supabaseAdmin
+        .from('locations')
+        .insert(newArtworks)
+
+      if (insertError) {
+        throw new Error(`Failed to insert new artworks: ${insertError.message}`)
+      }
+    }
+
+    return {
+      total: allArtworks.length,
+      new: newArtworks.length,
+      sources: {
+        wikimedia: wikiArt.length,
+        met: metArt.length,
+        chicago: chicagoArt.length
+      }
+    }
+  } catch (error) {
+    console.error('Error in syncArtData:', error)
+    throw error
+  }
+}
+
+export async function searchArtworks(query: string) {
+  console.log('Searching artworks:', query)
+  try {
+    const { data: locations, error } = await supabase
+      .from('locations')
+      .select('*')
+      .or(`name.ilike.%${query}%, description.ilike.%${query}%`)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      throw error
+    }
+
+    return locations || []
+  } catch (error) {
+    console.error('Error searching artworks:', error)
+    throw new Error(`Search error: ${error instanceof Error ? error.message : 'Unknown error'}`)
+  }
 }

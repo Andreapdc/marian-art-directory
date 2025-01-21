@@ -3,16 +3,16 @@ import { syncArtData } from '@/lib/api/art-services'
 
 export async function POST() {
   try {
-    await syncArtData()
-    return NextResponse.json({ message: 'Art data synchronized successfully' })
+    const result = await syncArtData()
+    return NextResponse.json(result)
   } catch (error) {
-    console.error('Error syncing art data:', error)
+    console.error('Error in sync endpoint:', error)
     return NextResponse.json(
-      { error: 'Failed to sync art data' },
+      { error: 'Failed to sync art data', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }
 }
 
-// Allow this endpoint to be called every hour
-export const revalidate = 3600
+// Prevent caching
+export const dynamic = 'force-dynamic'
