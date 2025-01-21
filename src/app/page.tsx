@@ -14,7 +14,7 @@ interface Location {
   tags: string[]
   metadata: {
     source: string
-    id: number | string
+    id: string | number
     url?: string
   }
 }
@@ -23,17 +23,23 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('')
   const [locations, setLocations] = useState<Location[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [debouncedQuery] = useDebounce(searchQuery, 300)
 
   useEffect(() => {
-    async function fetchLocations() {
+    const fetchLocations = async () => {
       try {
         setLoading(true)
+        setError(null)
         const response = await fetch(`/api/search?q=${encodeURIComponent(debouncedQuery)}`)
+        if (!response.ok) {
+          throw new Error('Failed to fetch locations')
+        }
         const data = await response.json()
         setLocations(data)
-      } catch (error) {
-        console.error('Error fetching locations:', error)
+      } catch (err) {
+        console.error('Error fetching locations:', err)
+        setError(err instanceof Error ? err.message : 'An error occurred')
       } finally {
         setLoading(false)
       }
@@ -75,20 +81,20 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Artwork Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
-          {loading ? (
-            // Loading skeletons
-            Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="rounded-lg border bg-white p-6 shadow-sm animate-pulse">
-                <div className="aspect-[16/9] relative mb-4 bg-gray-200 rounded-md" />
-                <div className="h-6 bg-gray-200 rounded mb-2" />
-                <div className="h-4 bg-gray-200 rounded mb-2" />
-                <div className="h-4 bg-gray-200 rounded w-2/3" />
-              </div>
-            ))
-          ) : locations.length > 0 ? (
-            locations.map((location) => (
+        {error && (
+          <div className="mb-8 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+            {error}
+          </div>
+        )}
+
+        {loading ? (
+          // Loading skeletons
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+          </div>
+        ) : locations.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+            {locations.map((location) => (
               <Link
                 key={location.id}
                 href={location.metadata?.url || `/artwork/${location.id}`}
@@ -135,54 +141,13 @@ export default function Home() {
                           'Local Database'}
                 </div>
               </Link>
-            ))
-          ) : (
-            <div className="col-span-full text-center py-12">
-              <p className="text-gray-500">No artworks found. Try a different search term.</p>
-            </div>
-          )}
-        </div>
-
-        {/* Categories Section */}
-        <div className="mb-16">
-          <h2 className="text-2xl font-bold mb-6">Browse by Category</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {['Paintings', 'Sculptures', 'Architecture', 'Photography', 'Museums', 'Exhibitions', 'Artists', 'History'].map((category) => (
-              <button
-                key={category}
-                className="p-4 text-center rounded-lg border hover:bg-gray-50 transition-colors"
-                onClick={() => setSearchQuery(category)}
-              >
-                {category}
-              </button>
             ))}
           </div>
-        </div>
-
-        {/* Sources Section */}
-        <div>
-          <h2 className="text-2xl font-bold mb-6">Data Sources</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="rounded-lg border bg-white p-6 shadow-sm">
-              <h3 className="text-lg font-semibold mb-2">Wikipedia</h3>
-              <p className="text-gray-600">
-                Access to millions of articles about art, culture, and history from the world's largest encyclopedia.
-              </p>
-            </div>
-            <div className="rounded-lg border bg-white p-6 shadow-sm">
-              <h3 className="text-lg font-semibold mb-2">Metropolitan Museum of Art</h3>
-              <p className="text-gray-600">
-                Over 470,000 artworks from one of the world's largest and most comprehensive art museums.
-              </p>
-            </div>
-            <div className="rounded-lg border bg-white p-6 shadow-sm">
-              <h3 className="text-lg font-semibold mb-2">Art Institute of Chicago</h3>
-              <p className="text-gray-600">
-                Discover a vast collection of impressionist art and American paintings in this renowned institution.
-              </p>
-            </div>
+        ) : (
+          <div className="col-span-full text-center py-12">
+            No artworks found. Try a different search term.
           </div>
-        </div>
+        )}
       </div>
     </main>
   )

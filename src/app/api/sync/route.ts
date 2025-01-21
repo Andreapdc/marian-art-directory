@@ -1,9 +1,14 @@
 import { NextResponse } from 'next/server'
 import { syncArtData } from '@/lib/api/art-services'
 
+export const dynamic = 'force-dynamic'
+export const maxDuration = 300
+
 export async function POST() {
   try {
+    console.log('Starting sync process...')
     const result = await syncArtData()
+    console.log('Sync completed:', result)
     return NextResponse.json(result)
   } catch (error) {
     console.error('Error in sync endpoint:', error)
@@ -13,6 +18,3 @@ export async function POST() {
     )
   }
 }
-
-// Prevent caching
-export const dynamic = 'force-dynamic'
